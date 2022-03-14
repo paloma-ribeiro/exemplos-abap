@@ -1,0 +1,94 @@
+*&---------------------------------------------------------------------*
+*& Report ZTESTE04
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zteste04.
+
+TABLES sflight.
+
+************************************************************************
+* TYPES                                                                *
+************************************************************************
+TYPES: BEGIN OF ty_sflight,
+         carrid TYPE sflight-carrid,
+         connid TYPE sflight-connid,
+         fldate TYPE sflight-fldate,
+       END OF ty_sflight.
+
+************************************************************************
+* INTERNAL TABLE                                                       *
+************************************************************************
+DATA: t_sflight TYPE TABLE OF ty_sflight.
+
+DATA: r_table     TYPE REF TO cl_salv_table,
+      f_functions TYPE REF TO cl_salv_functions.
+
+************************************************************************
+* TELA DE SELEÇÃO                                                       *
+************************************************************************
+SELECTION-SCREEN BEGIN OF BLOCK a WITH FRAME TITLE text-f01.
+SELECT-OPTIONS: so_id FOR sflight-carrid.
+SELECTION-SCREEN END OF BLOCK a.
+
+START-OF-SELECTION.
+
+  PERFORM f_seleciona_dados.
+  PERFORM f_cria_alv.
+
+END-OF-SELECTION.
+
+  IF t_sflight[] IS NOT INITIAL.
+    PERFORM f_mostra_alv.
+  ELSE.
+    MESSAGE text-001 TYPE 'S' DISPLAY LIKE 'E'.
+  ENDIF.
+
+*&---------------------------------------------------------------------*
+*&      Form  F_SELECIONA_DADOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM f_seleciona_dados .
+  SELECT carrid
+    connid
+    fldate
+    FROM sflight
+    INTO TABLE t_sflight
+    WHERE carrid IN so_id.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  F_CRIA_ALV
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM f_cria_alv .
+
+  TRY.
+      CALL METHOD cl_salv_table=>factory
+        IMPORTING
+          r_salv_table = r_table
+        CHANGING
+          t_table      = t_sflight.
+
+    CATCH cx_salv_msg .
+  ENDTRY.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  F_MOSTRA_ALV
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM f_mostra_alv .
+  CALL METHOD r_table->display.
+ENDFORM.

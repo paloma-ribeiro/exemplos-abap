@@ -1,0 +1,114 @@
+*&---------------------------------------------------------------------*
+*& Report ZTESTE04_02
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zteste04_02.
+
+TYPE-POOLS: slis. "Tipos globais para módulos de lista genérica
+
+TABLES: spfli. "Horário de vôos
+
+SELECTION-SCREEN BEGIN OF BLOCK b01 WITH FRAME TITLE TEXT-001.
+  SELECT-OPTIONS: so_city FOR spfli-cityfrom NO INTERVALS.
+  PARAMETERS: p_basic TYPE char1 RADIOBUTTON GROUP gr1 DEFAULT 'X',
+              p_compl TYPE char1 RADIOBUTTON GROUP gr1.
+SELECTION-SCREEN END OF BLOCK b01.
+
+DATA: t_spfli          TYPE TABLE OF spfli,
+      lo_grid_100      TYPE REF TO cl_gui_alv_grid,
+      lo_container_100 TYPE REF TO cl_gui_custom_container,
+      lv_okcode_100    TYPE sy-ucomm,
+      lt_fieldcat      TYPE lvc_t_fcat,
+      ls_layout        TYPE lvc_s_layo,
+      ls_variant       TYPE disvariant.
+
+START-OF-SELECTION.
+  PERFORM f_obtem_dados.
+*&---------------------------------------------------------------------*
+*& Form f_obtem_dados
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+FORM f_obtem_dados .
+
+  SELECT *
+    INTO TABLE t_spfli
+    FROM spfli
+    WHERE cityfrom IN so_city.
+
+  IF p_basic EQ 'X'.
+    PERFORM f_visualizar_dados.
+  ELSE.
+    PERFORM f_visualizar_alv_compl.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form f_visualizar_dados
+*&---------------------------------------------------------------------*
+*& Exibe as informações selecionadas em um ALV Básico
+*&---------------------------------------------------------------------*
+FORM f_visualizar_dados .
+
+  DATA: lt_fieldcat_basico TYPE slis_t_fieldcat_alv,
+        ls_layout_basico   TYPE slis_layout_alv.
+
+  CALL FUNCTION 'REUSE_ALV_FIELDCATALOG_MERGE'
+    EXPORTING
+      i_structure_name = 'spfli'
+    CHANGING
+      ct_fieldcat      = lt_fieldcat_basico.
+
+  ls_layout_basico-colwidth_optimize = 'X'.
+  ls_layout_basico-zebra = 'X'.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      is_layout     = ls_layout_basico
+      it_fieldcat   = lt_fieldcat_basico
+    TABLES
+      t_outtab      = t_spfli
+    EXCEPTIONS
+      program_error = 1
+      OTHERS        = 2.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form f_visualizar_alv_compl
+*&---------------------------------------------------------------------*
+*& Exibe as informações selecionadas em um ALV Completo
+*&---------------------------------------------------------------------*
+FORM f_visualizar_alv_compl .
+
+  IF t_spfli[] IS NOT INITIAL.
+    CALL SCREEN 100.
+  ELSE.
+    MESSAGE TEXT-002 TYPE 'S' DISPLAY LIKE 'W'.
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0100 INPUT.
+
+  CASE lv_okcode_100.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 0.
+    WHEN 'EXIT'.
+      LEAVE PROGRAM.
+  ENDCASE.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+  SET PF-STATUS 'STATUS100'.
+  SET TITLEBAR 'TITLE100'.
+ENDMODULE.
